@@ -1,0 +1,76 @@
+# ================================================
+# .gitignore — ETL-Yazaki Project
+# ================================================
+
+# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.eggs/
+
+# ── Virtual environments ─────────────────────────
+airflow-env/
+airflow-env-linux/
+venv/
+.venv/
+env/
+ENV/
+
+# ── Jupyter Notebooks ────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Environment / Secrets ────────────────────────
+.env
+.env.*
+*.env
+config_local.py
+secrets.py
+
+# !! NEVER commit credentials or connection strings
+# config.py contains SQL credentials — keep it local or use env vars
+
+# ── Airflow ──────────────────────────────────────
+airflow.db
+airflow.cfg
+airflow_settings.yaml
+logs/
+standalone_admin_password.txt
+webserver_config.py
+.airflow/
+
+# ── OS files ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE / Editor ─────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Data files (protect sensitive data) ──────────
+# !! All data used in this project is GENERATED / SYNTHETIC
+# !! No real company data should ever be committed
+*.csv
+*.xlsx
+*.xls
+*.json
+*.parquet
+*.db
+*.sqlite
+data/
+raw_data/
+output/
+
+# ── Logs ─────────────────────────────────────────
+*.log
+*.out
+etl/config.py
