@@ -1,3 +1,9 @@
+![Security Notice](https://img.shields.io/badge/Notice-No%20real%20or%20sensitive%20data%20is%20stored%20in%20this%20repository%20—even%20with%20advanced%20analysis%20or%20exploitation%20attempts%2C%20no%20valuable%20information%20can%20be%20extracted-blue)
+
+![Security Notice](https://img.shields.io/badge/Notice-Feel%20free%20to%20explore%20—you%20won’t%20find%20any%20real%20or%20exploitable%20data%20here-green)
+
+
+
 # ETL-Yazaki — Data Warehouse Pipeline
 
 > **⚠️ IMPORTANT NOTICE — Synthetic Data Only**
