@@ -3,6 +3,12 @@
 ![Security Notice](https://img.shields.io/badge/Notice-Feel%20free%20to%20explore%20—you%20won’t%20find%20any%20real%20or%20exploitable%20data%20here-green)
 
 
+No real or sensitive data is stored in this repository — even with advanced analysis or exploitation attempts, no valuable information can be extracted.
+
+Feel free to explore — you won’t find any real or exploitable data here.
+
+
+
 
 # ETL-Yazaki — Data Warehouse Pipeline
 
