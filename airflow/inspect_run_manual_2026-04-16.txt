@@ -1,0 +1,85 @@
+TASK_STATES_JSON:
+[{"dag_id": "etl_yazaki_dw_previsions", "execution_date": "2026-04-16T08:21:39+00:00", "task_id": "extract", "state": "success", "start_date": "2026-04-16T08:21:40.571167+00:00", "end_date": "2026-04-16T08:21:41.785545+00:00"}, {"dag_id": "etl_yazaki_dw_previsions", "execution_date": "2026-04-16T08:21:39+00:00", "task_id": "transform", "state": "success", "start_date": "2026-04-16T08:21:42.624779+00:00", "end_date": "2026-04-16T08:21:53.946444+00:00"}, {"dag_id": "etl_yazaki_dw_previsions", "execution_date": "2026-04-16T08:21:39+00:00", "task_id": "load_dw", "state": "failed", "start_date": "2026-04-16T08:29:44.361789+00:00", "end_date": "2026-04-16T08:29:46.621609+00:00"}, {"dag_id": "etl_yazaki_dw_previsions", "execution_date": "2026-04-16T08:21:39+00:00", "task_id": "forecast_previsions", "state": "upstream_failed", "start_date": "2026-04-16T08:29:46.667871+00:00", "end_date": "2026-04-16T08:29:46.667871+00:00"}]
+===== TASK load_dw STATE=failed =====
+LOG_FILE=/opt/airflow/logs/dag_id=etl_yazaki_dw_previsions/run_id=manual__2026-04-16T08:21:39+00:00/task_id=load_dw/attempt=3.log
+[2026-04-16T08:29:44.366+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_yazaki_dw_previsions.load_dw manual__2026-04-16T08:21:39+00:00 [queued]>
+[2026-04-16T08:29:44.366+0000] {taskinstance.py:2306} INFO - Starting attempt 3 of 3
+[2026-04-16T08:29:44.375+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): load_dw> on 2026-04-16 08:21:39+00:00
+[2026-04-16T08:29:44.379+0000] {standard_task_runner.py:64} INFO - Started process 300 to run task
+[2026-04-16T08:29:44.382+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'etl_yazaki_dw_previsions', 'load_dw', 'manual__2026-04-16T08:21:39+00:00', '--job-id', '35', '--raw', '--subdir', 'DAGS_FOLDER/yazaki_etl_dag.py', '--cfg-path', '/tmp/tmp8egswpsm']
+[2026-04-16T08:29:44.384+0000] {standard_task_runner.py:91} INFO - Job 35: Subtask load_dw
+[2026-04-16T08:29:44.447+0000] {task_command.py:426} INFO - Running <TaskInstance: etl_yazaki_dw_previsions.load_dw manual__2026-04-16T08:21:39+00:00 [running]> on host 7fc02c452acb
+[2026-04-16T08:29:44.521+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='yazaki' AIRFLOW_CTX_DAG_ID='etl_yazaki_dw_previsions' AIRFLOW_CTX_TASK_ID='load_dw' AIRFLOW_CTX_EXECUTION_DATE='2026-04-16T08:21:39+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-04-16T08:21:39+00:00'
+[2026-04-16T08:29:44.523+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-16T08:29:44.567+0000] {logging_mixin.py:188} INFO - 
+================================================================================
+[2026-04-16T08:29:44.568+0000] {logging_mixin.py:188} INFO - [PIPELINE] LOAD - Chargement des donn+容s dans DW_Yazaki
+[2026-04-16T08:29:44.568+0000] {logging_mixin.py:188} INFO - ================================================================================
+[2026-04-16T08:29:44.571+0000] {logging_mixin.py:188} INFO - [LOAD] Suppression des donn+容s existantes...
+[2026-04-16T08:29:46.595+0000] {logging_mixin.py:188} INFO - 
+[ERREUR] Erreur lors du chargement : (pyodbc.IntegrityError) ('23000', '[23000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]L\'instruction DELETE est en conflit avec la contrainte REFERENCE "FK__Prevision__Depar__70DDC3D8". Le conflit s\'est produit dans la base de donn+容s "DW_Yazaki", table "dbo.Previsions", column \'DepartementID\'. (547) (SQLExecDirectW)')
+[SQL: DELETE FROM Dim_Departement]
+(Background on this error at: https://sqlalche.me/e/14/gkpj)
+[2026-04-16T08:29:46.597+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-16T08:29:46.599+0000] {taskinstance.py:2905} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1910, in _execute_context
+    self.dialect.do_execute(
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 736, in do_execute
+    cursor.execute(statement, parameters)
+pyodbc.IntegrityError: ('23000', '[23000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]L\'instruction DELETE est en conflit avec la contrainte REFERENCE "FK__Prevision__Depar__70DDC3D8". Le conflit s\'est produit dans la base de donn+容s "DW_Yazaki", table "dbo.Previsions", column \'DepartementID\'. (547) (SQLExecDirectW)')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/taskinstance.py", line 465, in _execute_task
+    result = _execute_callable(context=context, **execute_callable_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/taskinstance.py", line 432, in _execute_callable
+    return execute_callable(context=context, **execute_callable_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/models/baseoperator.py", line 401, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/operators/python.py", line 235, in execute
+    return_value = self.execute_callable()
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/airflow/operators/python.py", line 252, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/airflow/dags/yazaki_etl_dag.py", line 67, in load_task
+    load_all(df_tel, df_imp)
+  File "/opt/airflow/project/etl/load.py", line 322, in load_all
+    _clear_tables(engine)
+  File "/opt/airflow/project/etl/load.py", line 20, in _clear_tables
+    conn.execute(text("DELETE FROM Dim_Departement"))
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1385, in execute
+    return meth(self, multiparams, params, _EMPTY_EXECUTION_OPTS)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 334, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1577, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1953, in _execute_context
+    self._handle_dbapi_exception(
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2134, in _handle_dbapi_exception
+    util.raise_(
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/util/compat.py", line 211, in raise_
+    raise exception
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1910, in _execute_context
+    self.dialect.do_execute(
+  File "/home/airflow/.local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 736, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (pyodbc.IntegrityError) ('23000', '[23000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]L\'instruction DELETE est en conflit avec la contrainte REFERENCE "FK__Prevision__Depar__70DDC3D8". Le conflit s\'est produit dans la base de donn+容s "DW_Yazaki", table "dbo.Previsions", column \'DepartementID\'. (547) (SQLExecDirectW)')
+[SQL: DELETE FROM Dim_Departement]
+(Background on this error at: https://sqlalche.me/e/14/gkpj)
+[2026-04-16T08:29:46.622+0000] {taskinstance.py:1206} INFO - Marking task as FAILED. dag_id=etl_yazaki_dw_previsions, task_id=load_dw, run_id=manual__2026-04-16T08:21:39+00:00, execution_date=20260416T082139, start_date=20260416T082944, end_date=20260416T082946
+[2026-04-16T08:29:46.631+0000] {standard_task_runner.py:110} ERROR - Failed to execute job 35 for task load_dw ((pyodbc.IntegrityError) ('23000', '[23000] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]L\'instruction DELETE est en conflit avec la contrainte REFERENCE "FK__Prevision__Depar__70DDC3D8". Le conflit s\'est produit dans la base de donn+容s "DW_Yazaki", table "dbo.Previsions", column \'DepartementID\'. (547) (SQLExecDirectW)')
+[SQL: DELETE FROM Dim_Departement]
+(Background on this error at: https://sqlalche.me/e/14/gkpj); 300)
+[2026-04-16T08:29:46.653+0000] {local_task_job_runner.py:243} INFO - Task exited with return code 1
+[2026-04-16T08:29:46.670+0000] {taskinstance.py:3503} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-04-16T08:29:46.675+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
+forecast_previsions did not start (state=upstream_failed); skipping papermill/Prevision.ipynb grep.
