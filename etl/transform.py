@@ -77,6 +77,14 @@ def _imputer_par_mapping(df, col_cible, col_source, exclude_values=None):
     return df
 
 
+def _forcer_colonnes_string(df, colonnes):
+    """Forcer un sous-ensemble de colonnes en dtype string lorsqu'elles existent."""
+    for col in colonnes:
+        if col in df.columns:
+            df[col] = df[col].astype('string')
+    return df
+
+
 # =============================================================================
 # NORMALISATION DÉPARTEMENT
 # =============================================================================
@@ -226,7 +234,11 @@ def _propager_departement_consistent(df):
     mapping = {}
     for code_emp in df['CodeEmployee'].unique():
         subset = df[df['CodeEmployee'] == code_emp]
-        valid_depts = subset[subset['NomDepartement'].notna() & (subset['NomDepartement'] != '')]['NomDepartement']
+        valid_depts = subset[
+            subset['NomDepartement'].notna()
+            & (subset['NomDepartement'] != '')
+            & (subset['NomDepartement'] != 'INCONNU')
+        ]['NomDepartement']
         if len(valid_depts) > 0:
             most_common_dept = valid_depts.value_counts().idxmax()
             mapping[code_emp] = most_common_dept
@@ -246,13 +258,65 @@ def _corriger_types_telephoniques(ChargesTelephoniques):
     """Corriger les types de données de ChargesTelephoniques."""
     ChargesTelephoniques = _valider_et_convertir_dates(ChargesTelephoniques, 'DateOperation', 'ChargesTelephoniques')
     # Traiter seulement les colonnes qui existent
-    cols_string = ['NomDepartement', 'NomRole', 'CodeEmployee', 'NumeroTelephone']
+    cols_string = ['NomDepartement','CodeDepartement', 'NomRole','CodeRole','CodeEmployee', 'NumeroTelephone']
     cols_exist = [col for col in cols_string if col in ChargesTelephoniques.columns]
     for col in cols_exist:
         ChargesTelephoniques[col] = ChargesTelephoniques[col].astype('string')
+    if 'NomRole' in ChargesTelephoniques.columns:
+        ChargesTelephoniques['NomRole'] = _normaliser_nom_role(ChargesTelephoniques['NomRole'])
     if 'ForfaitTND' in ChargesTelephoniques.columns:
         # Remplir les NaN avec 0 avant la conversion en int64
         ChargesTelephoniques['ForfaitTND'] = ChargesTelephoniques['ForfaitTND'].fillna(0).astype('int64')
+    return ChargesTelephoniques
+
+
+def _normaliser_nom_role(serie):
+    """Normaliser NomRole en majuscules et convertir les variantes NULL en INCONNU."""
+    return (
+        serie.astype('string')
+        .replace({'NULL': pd.NA, 'null': pd.NA, 'Null': pd.NA})
+        .str.strip()
+        .str.upper()
+        .fillna('INCONNU')
+    )
+
+
+FORFAIT_TO_NOMROLE_MAP = {
+    0: 'HEAD',
+    20: 'LINE LEADER',
+    25: 'TECHNICIEN',
+    40: 'SPECIALISTE',
+    50: 'CENTRAL FUNCTION',
+    70: 'SUPERVISEUR COMITE DIRECTION',
+    80: 'TEAM MANAGER',
+    100: 'MANAGER',
+}
+
+
+def _imputer_nomrole_par_forfait(ChargesTelephoniques):
+    """Imputer NomRole à partir de ForfaitTND pour les forfaits explicitement connus."""
+    if 'NomRole' not in ChargesTelephoniques.columns or 'ForfaitTND' not in ChargesTelephoniques.columns:
+        return ChargesTelephoniques
+    print("[INFO] Imputation NomRole par ForfaitTND...")
+    ChargesTelephoniques['NomRole'] = _normaliser_nom_role(ChargesTelephoniques['NomRole'])
+    mask = ChargesTelephoniques['NomRole'].eq('INCONNU')
+    count_inconnu = mask.sum()
+    print(f"  Lignes avec NomRole == 'INCONNU' : {count_inconnu}")
+    
+    if mask.any():
+        mapped_roles = ChargesTelephoniques.loc[mask, 'ForfaitTND'].map(FORFAIT_TO_NOMROLE_MAP)
+        valid_index = mapped_roles.dropna().index
+        count_mapped = len(valid_index)
+        print(f"  Forfaits mappés : {count_mapped}")
+        print(f"  Distribution des forfaits non mappés :")
+        unmapped_forfaits = ChargesTelephoniques.loc[mask & ~ChargesTelephoniques.index.isin(valid_index), 'ForfaitTND'].value_counts()
+        for forfait, count in unmapped_forfaits.items():
+            print(f"    - ForfaitTND {forfait}: {count} lignes")
+        
+        if len(valid_index) > 0:
+            ChargesTelephoniques.loc[valid_index, 'NomRole'] = mapped_roles.loc[valid_index]
+            print(f"  ✓ {count_mapped} NomRole imputés par ForfaitTND")
+    
     return ChargesTelephoniques
 
 
@@ -261,6 +325,8 @@ def _imputer_valeurs_telephoniques(ChargesTelephoniques):
     # CodeDepartement et NomResponsable n'existent pas dans les données
     if 'NomRole' in ChargesTelephoniques.columns and 'CodeEmployee' in ChargesTelephoniques.columns:
         ChargesTelephoniques = _imputer_par_mapping(ChargesTelephoniques, 'NomRole', 'CodeEmployee')
+        ChargesTelephoniques['NomRole'] = _normaliser_nom_role(ChargesTelephoniques['NomRole'])
+    ChargesTelephoniques = _imputer_nomrole_par_forfait(ChargesTelephoniques)
     if 'ForfaitTND' in ChargesTelephoniques.columns and 'NomRole' in ChargesTelephoniques.columns:
         ChargesTelephoniques = _imputer_par_mapping(ChargesTelephoniques, 'ForfaitTND', 'NomRole')
     return ChargesTelephoniques
@@ -293,9 +359,11 @@ def _corriger_forfaits(ChargesTelephoniques):
         "CENTRAL FUNCTION": 50, "TEAM MANAGER": 80, "SPECIALISTE": 40, "ASSISTANTE DG": 80,
         "HEAD": 0, "SUPERVISEUR": 50, "CENTRAL FUNCTION MANAGER": 100
     }
-    nomrole_norm = ChargesTelephoniques['NomRole'].str.upper().str.strip()
+    forfaits_autorises = {0, 20, 25, 40, 50, 70, 80, 100}
+    nomrole_norm = _normaliser_nom_role(ChargesTelephoniques['NomRole'])
     for role, forfait in mapping_nomrole_forfait.items():
         ChargesTelephoniques.loc[nomrole_norm == role, 'ForfaitTND'] = forfait
+    ChargesTelephoniques.loc[~ChargesTelephoniques['ForfaitTND'].isin(forfaits_autorises), 'ForfaitTND'] = 0
     return ChargesTelephoniques
 
 
@@ -311,34 +379,66 @@ def _propager_role_tel_dernier_mois(df, col_date='DateOperation'):
     df_sorted = df.sort_values(by=['CodeEmployee', 'Annee', 'Mois', col_date], ascending=[True, True, True, False])
     mapping = {}
     for (code_emp, annee, mois), group in df_sorted.groupby(['CodeEmployee', 'Annee', 'Mois']):
+        # Chercher NomRole valide (pas NaN, pas NULL, pas chaîne NULL, pas vide)
+        nom_role_found = None
         for idx, row in group.iterrows():
-            if pd.notna(row['NomRole']) and pd.notna(row['NumeroTelephone']):
-                mapping[(code_emp, annee, mois)] = {'NomRole': row['NomRole'], 'NumeroTelephone': row['NumeroTelephone']}
+            nom_role = row['NomRole']
+            if pd.notna(nom_role):
+                nom_role_normalized = str(nom_role).strip().upper()
+                # Exclure les variantes de "NULL", "NAN", chaînes vides, et "INCONNU"
+                if nom_role_normalized not in {'NULL', 'NAN', '', 'INCONNU'}:
+                    nom_role_found = nom_role_normalized
+                    break
+        
+        # Chercher NumeroTelephone valide (peu importe NomRole)
+        numero_tel_found = None
+        for idx, row in group.iterrows():
+            if pd.notna(row['NumeroTelephone']):
+                numero_tel_found = row['NumeroTelephone']
                 break
+        
+        # Enregistrer le mapping si au moins un des deux est trouvé
+        if nom_role_found or numero_tel_found:
+            mapping[(code_emp, annee, mois)] = {
+                'NomRole': nom_role_found,
+                'NumeroTelephone': numero_tel_found
+            }
+    
+    # Appliquer le mapping
     if mapping:
         for (code_emp, annee, mois), values in mapping.items():
             mask = (df['CodeEmployee'] == code_emp) & (df['Annee'] == annee) & (df['Mois'] == mois)
-            df.loc[mask, 'NomRole'] = values['NomRole']
-            df.loc[mask, 'NumeroTelephone'] = values['NumeroTelephone']
-    print(f"  ✓ {len(mapping)} combinaison(s) traité(e)s")
+            if values['NomRole']:
+                df.loc[mask, 'NomRole'] = values['NomRole']
+            if values['NumeroTelephone']:
+                df.loc[mask, 'NumeroTelephone'] = values['NumeroTelephone']
+        print(f"  ✓ {len(mapping)} combinaison(s) traité(e)s")
+    
     df = df.drop(columns=['Annee', 'Mois'])
+    df['NomRole'] = _normaliser_nom_role(df['NomRole'])
     return df
 
 
 def transform_charges_telephoniques(ChargesTelephoniques):
     """Pipeline complet de transformation pour ChargesTelephoniques."""
+    # IMPORTANT: Faire la propagation AVANT la normalisation qui convertit NaN en INCONNU
+    ChargesTelephoniques = _valider_et_convertir_dates(ChargesTelephoniques, 'DateOperation', 'ChargesTelephoniques')
+    ChargesTelephoniques = _propager_role_tel_dernier_mois(ChargesTelephoniques, 'DateOperation')
+    
+    # Puis appliquer les transformations normales
     ChargesTelephoniques = _corriger_types_telephoniques(ChargesTelephoniques)
     ChargesTelephoniques = _imputer_valeurs_telephoniques(ChargesTelephoniques)
     ChargesTelephoniques = normaliser_nom_departement_telephoniques(ChargesTelephoniques)
-    ChargesTelephoniques = _propager_departement_consistent(ChargesTelephoniques)
     ChargesTelephoniques = _nettoyer_code_employee(ChargesTelephoniques)
+    ChargesTelephoniques = _propager_departement_consistent(ChargesTelephoniques)
     ChargesTelephoniques = _corriger_forfaits(ChargesTelephoniques)
-    ChargesTelephoniques = _propager_role_tel_dernier_mois(ChargesTelephoniques, 'DateOperation')
+    ChargesTelephoniques = _imputer_nomrole_par_forfait(ChargesTelephoniques)
     ChargesTelephoniques = ajouter_code_departement(ChargesTelephoniques, 'NomDepartement')
     ChargesTelephoniques = ajouter_code_role(ChargesTelephoniques, 'NomRole')
     cols_doublon = [col for col in ChargesTelephoniques.columns if col != 'TelephoniqueID']
     ChargesTelephoniques = _supprimer_doublons(ChargesTelephoniques, cols_doublon, 'ChargesTelephoniques')
     ChargesTelephoniques = _reset_ids_et_trier(ChargesTelephoniques, 'DateOperation', 'TelephoniqueID', 'ChargesTelephoniques')
+    ChargesTelephoniques = _forcer_colonnes_string(ChargesTelephoniques, ['CodeDepartement', 'CodeRole', 'CodeEmployee'])
     return ChargesTelephoniques
 
 
@@ -349,7 +449,7 @@ def transform_charges_telephoniques(ChargesTelephoniques):
 def _corriger_types_impression(ChargesImpression):
     """Corriger les types de données de ChargesImpression."""
     ChargesImpression = _valider_et_convertir_dates(ChargesImpression, 'DateImpression', 'ChargesImpression')
-    cols_string = ['NomDepartement', 'CouleurImpression', 'TypeImpression', 'FormatPapier']
+    cols_string = ['NomDepartement','CodeDepartement', 'CouleurImpression', 'TypeImpression', 'FormatPapier']
     cols_exist = [col for col in cols_string if col in ChargesImpression.columns]
     for col in cols_exist:
         ChargesImpression[col] = ChargesImpression[col].astype('string')
@@ -406,6 +506,7 @@ def _extraire_couleur_et_format(ChargesImpression):
     result = ChargesImpression['TypeImpression'].apply(extraire_info)
     ChargesImpression['FormatPapier'] = result.apply(lambda x: x[0])
     ChargesImpression['CouleurImpression'] = result.apply(lambda x: x[1])
+    ChargesImpression = _forcer_colonnes_string(ChargesImpression, ['FormatPapier', 'CouleurImpression'])
     print(f"  ✓ Extraction complète")
     return ChargesImpression
 
@@ -449,6 +550,7 @@ def transform_charges_impression(ChargesImpression):
     ChargesImpression = _corriger_nb_pages(ChargesImpression)
     # Pas de suppression de doublons : un même employé peut faire deux opérations identiques le même jour
     ChargesImpression = _reset_ids_et_trier(ChargesImpression, 'DateImpression', 'ImpressionID', 'ChargesImpression')
+    ChargesImpression = _forcer_colonnes_string(ChargesImpression, ['CodeDepartement', 'FormatPapier', 'CouleurImpression'])
     return ChargesImpression
 
 
