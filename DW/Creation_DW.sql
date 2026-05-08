@@ -117,4 +117,4 @@ CREATE TABLE Previsions (
 );
 GO
 
-CREATE INDEX IX_Previsions_Dept_Mois ON Previsions(DepartementID, Mois, ChargeType);
+CREATE INDEX IX_Previsions_Dept_Mois ON Previsions(DepartementID, Mois);

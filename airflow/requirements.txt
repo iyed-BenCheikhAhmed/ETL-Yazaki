@@ -1,11 +1,11 @@
-pandas==2.1.4
-numpy==1.26.4
-scipy==1.13.1
-sqlalchemy==1.4.52
-pyodbc==5.1.0
-statsmodels==0.14.2
-pmdarima==2.0.4
-scikit-learn==1.5.1
-papermill==2.6.0
-ipykernel==6.29.5
-matplotlib==3.9.2
+pandas==2.1.4 # Manipulation de données
+numpy==1.26.4 # Calculs numériques
+scipy==1.13.1 # Calculs scientifiques avancés (statistiques, optimisation) // for seasonal_decompose
+sqlalchemy==1.4.52 # Connexion à SQL Server
+pyodbc==5.1.0 # Driver ODBC pour SQL Server
+statsmodels==0.14.2 # Modèles statistiques (ARIMA, SARIMA) // for seasonal_decompose
+pmdarima==2.0.4 # Modèles ARIMA/SARIMA automatiques
+scikit-learn==1.5.1 # Machine Learning pour les metriques de performance (rmse, mae...)
+papermill==2.6.0 #Exécute tes notebooks Jupyter avec paramètres (depuis Airflow)
+ipykernel==6.29.5 # Kernel Jupyter pour les notebooks (configuré dans le Dockerfile)
+matplotlib==3.9.2 # Visualisation de données

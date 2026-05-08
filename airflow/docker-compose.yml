@@ -1,24 +1,28 @@
-x-airflow-common:
+x-airflow-common: # definir une configuration commune pour les services Airflow
   &airflow-common
-  build:
+  build: # Construire l'image à partir du Dockerfile
     context: .
     dockerfile: Dockerfile
   env_file:
     - .env
   environment:
-    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  # Utilise l'exécuteur local (pas de Celery/Kubernetes)
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor 
+  # Connexion à PostgreSQL pour la métabase d'Airflow (historique, DAGs, etc.)
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__CORE__FERNET_KEY: ''
+  # Clé de chiffrement pour les connexions, laisser vide pour en générer une automatiquement 
+    AIRFLOW__CORE__FERNET_KEY: '' 
+  # Ne pas charger les DAGs d'exemple      
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  # Authentification de base pour l'API d'Airflow
     AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
-    YAZAKI_PROJECT_ROOT: /opt/airflow/project
+  # chemin vers le projet dans le conteneur pour que les DAGs puissent l'importer
+    YAZAKI_PROJECT_ROOT: /opt/airflow/project 
     PYTHONPATH: /opt/airflow/project
   volumes:
     - ../dags:/opt/airflow/dags
     - ../etl:/opt/airflow/project/etl
-    - ../Prévision:/opt/airflow/project/Prévision
     - ./logs:/opt/airflow/logs
-    - ./plugins:/opt/airflow/plugins
   depends_on:
     - postgres
 
@@ -46,14 +50,15 @@ services:
       --email admin@yazaki.local
       "
 
-  airflow-webserver:
+  airflow-webserver: # interface utilisateur d'Airflow
     <<: *airflow-common
     command: webserver
     ports:
       - "8080:8080"
-    restart: unless-stopped
+    restart: unless-stopped # Redémarre automatiquement en cas d'erreur ou d'arrêt
 
-  airflow-scheduler:
+
+  airflow-scheduler: # composant qui planifie et exécute les tâches
     <<: *airflow-common
     command: scheduler
     restart: unless-stopped

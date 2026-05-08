@@ -5,6 +5,10 @@ from pathlib import Path
 import os
 import sys
 
+# Path() convertit une chaîne de caractères en objet Path, ce qui facilite la manipulation des chemins de fichiers
+# resolve() retourne le chemin absolu du fichier C:\Users\habib\Desktop\Yazaki\ETL-Yazaki\dags\yazaki_etl_dag.py
+# parents[1] remonte d'un niveau dans l'arborescence pour atteindre le dossier racine du projet
+# ou se trouve le dossier etl avec les modules extract, transform, load et config
 
 PROJECT_ROOT = Path(os.getenv("YAZAKI_PROJECT_ROOT", Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -22,15 +26,15 @@ default_args = {
 }
 
 dag = DAG(
-    "etl_yazaki_dw_previsions",
+    "etl_yazaki",
     default_args=default_args,
-    description="ETL Yazaki + generation previsions dans DW",
-    schedule="0 2 * * *",
-    catchup=False,
+    description="ETL Yazaki DAG",
+    schedule=None,  # Pas de planification automatique, exécution manuelle
+    catchup=False,  # N'exécute pas les anciennes dates manquées
 )
 
 
-def extract_task(**context):
+def extract_task():
     df_tel = extract_charges_telephoniques()
     df_imp = extract_charges_impression()
     tmp_dir = Path("/tmp")
@@ -39,7 +43,7 @@ def extract_task(**context):
     return {"tel_rows": len(df_tel), "imp_rows": len(df_imp)}
 
 
-def transform_task(**context):
+def transform_task():
     import pandas as pd
 
     tmp_dir = Path("/tmp")
@@ -56,8 +60,8 @@ def transform_task(**context):
         "imp_rows_transformed": len(df_imp_transformed),
     }
 
-
-def load_task(**context):
+# context = dictionnaire avec des infos Airflow
+def load_task():
     import pandas as pd
 
     tmp_dir = Path("/tmp")

@@ -11,7 +11,7 @@ def extract_charges_telephoniques():
         return ChargesTelephoniques
     except Exception as e:
         print(f"[ERROR] Extraction ChargesTelephoniques failed: {str(e)}")
-        raise
+        raise # Relève l'erreur pour que le DAG puisse la gérer (ex: retries, alertes)
 
 
 def extract_charges_impression():

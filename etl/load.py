@@ -5,7 +5,7 @@ from etl.config import get_dw_engine
 
 
 def _clear_tables(engine):
-    """Vider les tables de faits puis les dimensions (y compris Dim_Temps)."""
+    # Vider les tables de faits puis les dimensions .
     print("[LOAD] Suppression des données existantes...")
     with engine.begin() as conn:
         # Supprimer d'abord les prévisions (FK vers Dim_Departement)
@@ -27,16 +27,16 @@ def _clear_tables(engine):
                 conn.execute(text(f"DBCC CHECKIDENT ('{table}', RESEED, 0)"))
             except:
                 pass
-    print("  ✓ Tables vidées (Dim_Temps incluse)")
+    print("  ✓ Tables vidées ")
 
 
 def _read_dim(engine, table_name):
-    """Lire une table de dimension depuis le DW."""
+    # Lire une table de dimension depuis le DW.
     return pd.read_sql(f"SELECT * FROM {table_name}", engine)
 
 
 def load_dim_departement(engine, df_charges_tel, df_charges_imp):
-    """Charger les départements uniques dans Dim_Departement."""
+    # Charger les départements uniques dans Dim_Departement.
     print("[LOAD] Chargement Dim_Departement...")
     
     # Extraire les départements des deux DataFrames
@@ -69,7 +69,7 @@ def load_dim_departement(engine, df_charges_tel, df_charges_imp):
         df_depts['CodeDepartement'] = df_depts['NomDepartement'].map(codes).fillna('INCONNU')
     else:
         df_depts['CodeDepartement'] = 'INCONNU'
-    
+
     with engine.begin() as conn:
         for _, row in df_depts.iterrows():
             conn.execute(text("""
@@ -85,7 +85,7 @@ def load_dim_departement(engine, df_charges_tel, df_charges_imp):
 
 
 def load_dim_role(engine, df_charges_tel):
-    """Charger les rôles uniques dans Dim_Role."""
+    # Charger les rôles uniques dans Dim_Role.
     print("[LOAD] Chargement Dim_Role...")
     
     roles = df_charges_tel['NomRole'].dropna().drop_duplicates().reset_index(drop=True)
@@ -126,6 +126,7 @@ def load_dim_employee(engine, df_charges_tel):
     print("[LOAD] Chargement Dim_Employee...")
     
     employees = df_charges_tel[['CodeEmployee', 'NumeroTelephone']].drop_duplicates().reset_index(drop=True)
+    # .reset_index(drop=True)  # pour éviter les problèmes d'index lors de l'itération
     
     with engine.begin() as conn:
         for _, row in employees.iterrows():
@@ -138,14 +139,15 @@ def load_dim_employee(engine, df_charges_tel):
 
 
 def load_dim_temps(engine, df_charges_tel, df_charges_imp):
-    """(Re)charger Dim_Temps avec des DateID séquentiels (1..n) triés par date."""
+    # (Re)charger Dim_Temps avec des DateID séquentiels (1..n) triés par date.
     print("[LOAD] (Re)chargement Dim_Temps (DateID = 1..n)...")
 
     # Extraire les dates des deux DataFrames (en ignorant les NaT)
     dates = []
     if 'DateOperation' in df_charges_tel.columns:
         dates_tel = pd.to_datetime(df_charges_tel['DateOperation'], errors='coerce').dropna().dt.date
-        dates.extend(dates_tel.tolist())
+        dates.extend(dates_tel.tolist()) # Convertir en liste de dates (sans NaT)  
+        # .dt.date pour ne garder que la partie date (sans l'heure)
     if 'DateImpression' in df_charges_imp.columns:
         dates_imp = pd.to_datetime(df_charges_imp['DateImpression'], errors='coerce').dropna().dt.date
         dates.extend(dates_imp.tolist())
@@ -193,7 +195,7 @@ def load_dim_temps(engine, df_charges_tel, df_charges_imp):
 
 
 def load_dim_impression(engine, df_charges_imp):
-    """Charger les types d'impression uniques dans Dim_Impression."""
+    # Charger les types d'impression uniques dans Dim_Impression.
     print("[LOAD] Chargement Dim_Impression...")
     
     impressions = df_charges_imp[['TypeImpression', 'CouleurImpression', 'FormatPapier']].drop_duplicates().reset_index(drop=True)
@@ -213,7 +215,7 @@ def load_dim_impression(engine, df_charges_imp):
 
 
 def load_fact_telephone(engine, df_charges_tel):
-    """Charger les faits téléphoniques avec résolution des clés étrangères."""
+    # Charger les faits téléphoniques avec résolution des clés étrangères.
     print("[LOAD] Chargement Fact_Telephone...")
     
     # Lire les dimensions
@@ -223,6 +225,7 @@ def load_fact_telephone(engine, df_charges_tel):
     dim_temps = _read_dim(engine, 'Dim_Temps')
     
     # Créer les mappings
+    # zip() necessaire pour garantir l'ordre correct des clés et valeurs
     dept_map = dict(zip(dim_dept['NomDepartement'], dim_dept['DepartementID']))
     emp_map = dict(zip(dim_emp['CodeEmployee'], dim_emp['EmployeeID']))
     role_map = dict(zip(dim_role['NomRole'], dim_role['RoleID']))
@@ -312,7 +315,7 @@ def load_fact_impression(engine, df_charges_imp):
 
 
 def load_all(df_charges_tel, df_charges_imp):
-    """Pipeline complet de chargement."""
+    # Pipeline complet de chargement.
     print("\n" + "="*80)
     print("[PIPELINE] LOAD - Chargement des données dans DW_Yazaki")
     print("="*80 + "\n")
