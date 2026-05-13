@@ -72,13 +72,15 @@ def load_dim_departement(engine, df_charges_tel, df_charges_imp):
 
     with engine.begin() as conn:
         for _, row in df_depts.iterrows():
+            # Remplacer les nan par None (NULL dans SQL Server)
+            desc = None if pd.isna(row['DescriptionDepartement']) else row['DescriptionDepartement']
             conn.execute(text("""
                 INSERT INTO Dim_Departement (CodeDepartement, NomDepartement, DescriptionDepartement)
                 VALUES (:code, :nom, :desc)
             """), {
                 'code': row['CodeDepartement'],
                 'nom': row['NomDepartement'],
-                'desc': row['DescriptionDepartement']
+                'desc': desc
             })
     
     print(f"  ✓ {len(df_depts)} département(s) chargé(s)")
@@ -109,13 +111,14 @@ def load_dim_role(engine, df_charges_tel):
     
     with engine.begin() as conn:
         for _, row in df_roles.iterrows():
+            desc = None if pd.isna(row['DescriptionRole']) else row['DescriptionRole']
             conn.execute(text("""
                 INSERT INTO Dim_Role (CodeRole, NomRole, DescriptionRole)
                 VALUES (:code, :nom, :desc)
             """), {
                 'code': row['CodeRole'],
                 'nom': row['NomRole'],
-                'desc': row['DescriptionRole']
+                'desc': desc
             })
     
     print(f"  ✓ {len(df_roles)} rôle(s) chargé(s)")
@@ -202,13 +205,16 @@ def load_dim_impression(engine, df_charges_imp):
     
     with engine.begin() as conn:
         for _, row in impressions.iterrows():
+            type_imp = None if pd.isna(row['TypeImpression']) else row['TypeImpression']
+            couleur = None if pd.isna(row['CouleurImpression']) else row['CouleurImpression']
+            format_p = None if pd.isna(row['FormatPapier']) else row['FormatPapier']
             conn.execute(text("""
                 INSERT INTO Dim_Impression (TypeImpression, CouleurImpression, FormatPapier)
                 VALUES (:type, :couleur, :format)
             """), {
-                'type': row['TypeImpression'],
-                'couleur': row['CouleurImpression'],
-                'format': row['FormatPapier']
+                'type': type_imp,
+                'couleur': couleur,
+                'format': format_p
             })
     
     print(f"  ✓ {len(impressions)} type(s) d'impression chargé(s)")
